@@ -15,7 +15,7 @@ class DebateConductor:
         self.debate_history = []
         # Lightweight local model -- swap for whatever you pulled via
         # `ollama pull <model>` (e.g. "mistral", "llama3", "phi3").
-        self.model = "mistral"
+        self.model = "phi3"
 
     # ------------------------------------------------------------
     # MEMORY HELPERS
