@@ -16,6 +16,15 @@ class DebateConductor:
         # Lightweight local model -- swap for whatever you pulled via
         # `ollama pull <model>` (e.g. "mistral", "llama3", "phi3").
         self.model = "phi3"
+        # How many of the most recent turns to feed back into the prompt.
+        # Sending the FULL transcript every turn (unbounded) means the
+        # prompt keeps growing round after round, and Ollama has to
+        # re-process all of it before it can even start generating --
+        # capping this keeps response time roughly constant across a long
+        # debate instead of getting slower turn by turn. 6 turns (~3 full
+        # back-and-forth exchanges) is enough for agents to still directly
+        # rebut what was just said.
+        self.max_history_turns = 6
 
     # ------------------------------------------------------------
     # MEMORY HELPERS
@@ -37,8 +46,9 @@ class DebateConductor:
         if not self.debate_history:
             return "No arguments have been made yet. This is the opening statement."
 
+        recent_turns = self.debate_history[-self.max_history_turns:]
         lines = []
-        for turn in self.debate_history:
+        for turn in recent_turns:
             label = "Advocate (Agent A)" if turn["speaker"] == "A" else "Challenger (Agent B)"
             lines.append(f"{label}: {turn['text']}")
         return "\n".join(lines)
@@ -52,9 +62,15 @@ class DebateConductor:
             "system": system_prompt,
             "prompt": user_prompt,
             "stream": False,
+            # num_predict caps how many tokens the model is allowed to
+            # generate. The persona prompts already ask for 2-4 short
+            # sentences, so 100 tokens is plenty of headroom while making
+            # sure a turn can't run long and drag the whole debate down --
+            # this is usually the single biggest speed lever available.
+            "options": {"num_predict": 100},
         }
         try:
-            response = requests.post(self.ollama_url, json=payload, timeout=60)
+            response = requests.post(self.ollama_url, json=payload, timeout=300)
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
             # Surfaced to the frontend as the agent's "message" so the UI
