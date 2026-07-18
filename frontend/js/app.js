@@ -10,11 +10,18 @@ let transcriptA = [];
 let transcriptB = [];
 
 const topicInput = document.getElementById('topicInput');
+const durationInput = document.getElementById('durationInput');
 const startBtn = document.getElementById('startBtn');
 const nextBtn = document.getElementById('nextTurnBtn');
 const endDebateBtn = document.getElementById('endDebateBtn');
 const feedA = document.getElementById('feedA');
 const feedB = document.getElementById('feedB');
+
+// Timer-driven auto-play state. The debate now runs on a configurable
+// timer (default 5 min, minimum 2 min) instead of requiring a manual
+// "Pass Turn" click for every single rebuttal.
+let debateEndTime = null;
+let autoPlayActive = false;
 
 // New UI Selectors
 const displayTopic = document.getElementById('displayTopic');
@@ -95,6 +102,9 @@ startBtn.addEventListener('click', async () => {
     transcriptA = [];
     transcriptB = [];
     endDebateBtn.disabled = true;
+    durationInput.disabled = false;
+    autoPlayActive = false;
+    debateEndTime = null;
     document.getElementById('judgeOverlay').style.display = 'none';
     
     setProcessingState(true);
@@ -119,10 +129,18 @@ startBtn.addEventListener('click', async () => {
         
         appendMessage(lastSpeaker, lastMessage, currentRound);
         
-        setProcessingState(false);
         dotA.classList.remove('active');
-        endDebateBtn.disabled = false;
-        statusText.textContent = "API Idle. Waiting for User Execution...";
+
+        // Kick off the timed auto-debate: agents will now keep rebutting
+        // each other automatically until the configured duration elapses.
+        const minutes = Math.max(2, parseInt(durationInput.value, 10) || 5);
+        debateEndTime = Date.now() + minutes * 60 * 1000;
+        nextBtn.disabled = true; // manual turns are superseded by auto-play
+        endDebateBtn.disabled = true; // enabled automatically once the timer ends
+        durationInput.disabled = true;
+        setProcessingState(false);
+        autoPlayActive = true;
+        runAutoPlay();
         
     } catch (err) {
         console.error("Backend connection failed.", err);
@@ -132,6 +150,69 @@ startBtn.addEventListener('click', async () => {
         toggleTyping('A', false);
     }
 });
+
+function formatRemaining() {
+    if (!debateEndTime) return "";
+    const remainingMs = Math.max(0, debateEndTime - Date.now());
+    const totalSec = Math.ceil(remainingMs / 1000);
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return `${m}:${s.toString().padStart(2, '0')} remaining`;
+}
+
+// Auto-play loop: keeps calling /next-turn back and forth until the
+// configured debate duration elapses, then automatically triggers the
+// ML Judge -- this is what makes the debate a genuine timed session
+// instead of relying on manual "Pass Turn" clicks.
+async function runAutoPlay() {
+    if (!autoPlayActive) return;
+
+    if (Date.now() >= debateEndTime) {
+        autoPlayActive = false;
+        statusText.textContent = "Timer elapsed. Compiling ML Judge verdict...";
+        endDebateBtn.disabled = false;
+        await runJudge();
+        return;
+    }
+
+    const nextAgent = lastSpeaker === 'A' ? 'B' : 'A';
+    setActive(nextAgent);
+    statusText.textContent = `Awaiting API Response for Agent ${nextAgent}... (${formatRemaining()})`;
+    toggleTyping(nextAgent, true);
+
+    try {
+        const response = await fetch(`${API_URL}/next-turn`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                topic: currentTopic,
+                last_speaker: lastSpeaker,
+                last_message: lastMessage
+            })
+        });
+
+        const data = await response.json();
+
+        lastSpeaker = data.agent || nextAgent;
+        lastMessage = data.message || "I attack the topic! (Python Backend generated this)";
+        (lastSpeaker === 'A' ? transcriptA : transcriptB).push(lastMessage);
+
+        appendMessage(lastSpeaker, lastMessage, currentRound);
+
+        if (lastSpeaker === 'B') currentRound++;
+
+        dotA.classList.remove('active');
+        dotB.classList.remove('active');
+    } catch (err) {
+        console.error(err);
+        toggleTyping(nextAgent, false);
+        statusText.textContent = "An agent failed to respond -- retrying next cycle...";
+    }
+
+    // Small pacing delay so turns are readable on screen rather than
+    // slamming back-to-back the instant a fast model responds.
+    setTimeout(runAutoPlay, 1500);
+}
 
 nextBtn.addEventListener('click', async () => {
     setProcessingState(true);
@@ -177,7 +258,7 @@ nextBtn.addEventListener('click', async () => {
 });
 
 // --- ML JUDGE (CONNECTS TO /api/machine-learning/*) ---
-endDebateBtn.addEventListener('click', async () => {
+async function runJudge() {
     setProcessingState(true);
     endDebateBtn.disabled = true;
     nextBtn.disabled = true;
@@ -239,4 +320,9 @@ endDebateBtn.addEventListener('click', async () => {
         endDebateBtn.disabled = false;
         nextBtn.disabled = false;
     }
+}
+
+endDebateBtn.addEventListener('click', () => {
+    autoPlayActive = false; // manual early-stop overrides the timer
+    runJudge();
 });

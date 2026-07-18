@@ -21,6 +21,10 @@
         <div class="top-bar-right">
             <input type="text" id="topicInput" placeholder="Enter custom debate topic..." style="padding: 10px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: #0a0e1a; color: white; width: 250px; outline:none;" />
             <div class="clock-container">
+                <div class="clock-label">DURATION (MIN)</div>
+                <input type="number" id="durationInput" value="5" min="2" step="1" style="width:60px; font-size: 1rem; color: #8b5cf6; background:#0a0e1a; border: 1px solid rgba(139,92,246,0.3); border-radius:6px; text-align:center; padding:4px;" />
+            </div>
+            <div class="clock-container">
                 <div class="clock-label">BACKEND STATUS</div>
                 <div class="clock" id="networkStatus" style="font-size: 1rem; color: #8b5cf6; border-color: rgba(139,92,246,0.3);">IDLE</div>
             </div>
