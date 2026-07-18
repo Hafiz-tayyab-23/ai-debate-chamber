@@ -63,11 +63,11 @@ class DebateConductor:
             "prompt": user_prompt,
             "stream": False,
             # num_predict caps how many tokens the model is allowed to
-            # generate. The persona prompts already ask for 2-4 short
-            # sentences, so 100 tokens is plenty of headroom while making
-            # sure a turn can't run long and drag the whole debate down --
+            # generate. Kept intentionally tight (60 tokens ~= 2-3 short
+            # sentences) so each turn finishes quickly enough to fit several
+            # full exchanges inside a short 2-3 minute debate window --
             # this is usually the single biggest speed lever available.
-            "options": {"num_predict": 100},
+            "options": {"num_predict": 60},
         }
         try:
             response = requests.post(self.ollama_url, json=payload, timeout=300)
@@ -94,7 +94,7 @@ class DebateConductor:
             "You passionately and confidently ARGUE IN FAVOR of the given topic. "
             "You are persuasive, cite plausible-sounding evidence and reasoning, "
             "and directly rebut the Challenger's previous point when one exists. "
-            "Keep your response to 2-4 sentences, punchy and debate-style, not a wall of text."
+            "Keep your response to 1-2 short, punchy sentences -- brevity wins here."
         )
 
         history_block = self._format_history()
@@ -121,8 +121,8 @@ class DebateConductor:
             "You passionately and confidently ARGUE AGAINST the given topic. "
             "You are skeptical, poke holes in the Advocate's reasoning, and cite "
             "plausible-sounding counter-evidence. Directly rebut the Advocate's "
-            "previous point when one exists. Keep your response to 2-4 sentences, "
-            "punchy and debate-style, not a wall of text."
+            "previous point when one exists. Keep your response to 1-2 short, "
+            "punchy sentences -- brevity wins here."
         )
 
         history_block = self._format_history()

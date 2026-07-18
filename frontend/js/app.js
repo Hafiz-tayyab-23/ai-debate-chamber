@@ -30,6 +30,9 @@ const statusText = document.getElementById('statusText');
 const dotA = document.getElementById('dotA');
 const dotB = document.getElementById('dotB');
 const globalDot = document.getElementById('globalDot');
+const countdownClock = document.getElementById('countdownClock');
+
+let countdownIntervalId = null;
 
 const API_URL = "http://127.0.0.1:5000/api/debate";
 
@@ -102,10 +105,16 @@ startBtn.addEventListener('click', async () => {
     transcriptA = [];
     transcriptB = [];
     endDebateBtn.disabled = true;
-    durationInput.disabled = false;
     autoPlayActive = false;
-    debateEndTime = null;
     document.getElementById('judgeOverlay').style.display = 'none';
+
+    // Start the timer THE MOMENT the button is clicked, visible on screen
+    // immediately -- not after Agent A's first response comes back.
+    const minutes = Math.max(2, parseInt(durationInput.value, 10) || 5);
+    debateEndTime = Date.now() + minutes * 60 * 1000;
+    durationInput.disabled = true;
+    nextBtn.disabled = true;
+    startCountdownDisplay();
     
     setProcessingState(true);
     globalDot.classList.add('live');
@@ -130,15 +139,8 @@ startBtn.addEventListener('click', async () => {
         appendMessage(lastSpeaker, lastMessage, currentRound);
         
         dotA.classList.remove('active');
-
-        // Kick off the timed auto-debate: agents will now keep rebutting
-        // each other automatically until the configured duration elapses.
-        const minutes = Math.max(2, parseInt(durationInput.value, 10) || 5);
-        debateEndTime = Date.now() + minutes * 60 * 1000;
-        nextBtn.disabled = true; // manual turns are superseded by auto-play
-        endDebateBtn.disabled = true; // enabled automatically once the timer ends
-        durationInput.disabled = true;
         setProcessingState(false);
+        endDebateBtn.disabled = true; // enabled automatically once the timer ends
         autoPlayActive = true;
         runAutoPlay();
         
@@ -150,6 +152,30 @@ startBtn.addEventListener('click', async () => {
         toggleTyping('A', false);
     }
 });
+
+function startCountdownDisplay() {
+    if (countdownIntervalId) clearInterval(countdownIntervalId);
+    updateCountdownClock();
+    countdownIntervalId = setInterval(updateCountdownClock, 1000);
+}
+
+function updateCountdownClock() {
+    if (!debateEndTime) {
+        countdownClock.textContent = "--:--";
+        return;
+    }
+    const remainingMs = Math.max(0, debateEndTime - Date.now());
+    const totalSec = Math.ceil(remainingMs / 1000);
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    countdownClock.textContent = `${m}:${s.toString().padStart(2, '0')}`;
+
+    if (remainingMs <= 0 && countdownIntervalId) {
+        countdownClock.textContent = "0:00";
+        clearInterval(countdownIntervalId);
+        countdownIntervalId = null;
+    }
+}
 
 function formatRemaining() {
     if (!debateEndTime) return "";
@@ -171,6 +197,8 @@ async function runAutoPlay() {
         autoPlayActive = false;
         statusText.textContent = "Timer elapsed. Compiling ML Judge verdict...";
         endDebateBtn.disabled = false;
+        if (countdownIntervalId) { clearInterval(countdownIntervalId); countdownIntervalId = null; }
+        countdownClock.textContent = "0:00";
         await runJudge();
         return;
     }
@@ -210,8 +238,9 @@ async function runAutoPlay() {
     }
 
     // Small pacing delay so turns are readable on screen rather than
-    // slamming back-to-back the instant a fast model responds.
-    setTimeout(runAutoPlay, 1500);
+    // slamming back-to-back the instant a fast model responds. Kept short
+    // since the bulk of the wait is the model's own generation time anyway.
+    setTimeout(runAutoPlay, 400);
 }
 
 nextBtn.addEventListener('click', async () => {
@@ -324,5 +353,6 @@ async function runJudge() {
 
 endDebateBtn.addEventListener('click', () => {
     autoPlayActive = false; // manual early-stop overrides the timer
+    if (countdownIntervalId) { clearInterval(countdownIntervalId); countdownIntervalId = null; }
     runJudge();
 });
