@@ -15,7 +15,7 @@ class DebateConductor:
         self.debate_history = []
         # Lightweight local model -- swap for whatever you pulled via
         # `ollama pull <model>` (e.g. "mistral", "llama3", "phi3").
-        self.model = "phi3"
+        self.model = "qwen2.5:0.5b"
         # How many of the most recent turns to feed back into the prompt.
         # Sending the FULL transcript every turn (unbounded) means the
         # prompt keeps growing round after round, and Ollama has to
