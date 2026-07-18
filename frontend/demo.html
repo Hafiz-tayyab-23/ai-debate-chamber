@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Debate Chamber | Live Simulation Demo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/demo.css">
+</head>
+<body>
+    <!-- Top Bar -->
+    <header class="top-bar">
+        <div class="top-bar-left">
+            <img src="logo.png" alt="Zenvyro Labs" class="logo-mark" />
+            <div>
+                <h1>AI Debate Chamber</h1>
+                <p>Zenvyro Labs · Autonomous Agent Simulation</p>
+            </div>
+        </div>
+        <div class="top-bar-right">
+            <div class="clock-container">
+                <div class="clock-label">TIME REMAINING</div>
+                <div class="clock" id="clock">05:00</div>
+            </div>
+            <button class="btn-start" id="startBtn">▶ Start Debate</button>
+        </div>
+    </header>
+
+    <!-- Topic Banner -->
+    <div class="topic-banner" id="topicBanner">
+        <span class="topic-label">DEBATE TOPIC</span>
+        <h2>"Will Artificial Intelligence Replace Human Jobs?"</h2>
+    </div>
+
+    <!-- Arena -->
+    <main class="arena">
+        <!-- Agent A -->
+        <section class="agent-panel advocate-panel" id="panelA">
+            <div class="agent-badge advocate-badge">
+                <div class="agent-avatar">A</div>
+                <div>
+                    <h3>Agent A · The Advocate</h3>
+                    <p>Defending: "No, AI will create more jobs than it destroys."</p>
+                </div>
+                <div class="live-dot" id="dotA"></div>
+            </div>
+            <div class="feed" id="feedA"></div>
+        </section>
+
+        <!-- Agent B -->
+        <section class="agent-panel challenger-panel" id="panelB">
+            <div class="agent-badge challenger-badge">
+                <div class="agent-avatar">B</div>
+                <div>
+                    <h3>Agent B · The Challenger</h3>
+                    <p>Attacking: "Yes, AI will cause mass unemployment."</p>
+                </div>
+                <div class="live-dot" id="dotB"></div>
+            </div>
+            <div class="feed" id="feedB"></div>
+        </section>
+    </main>
+
+    <!-- Status Bar -->
+    <footer class="status-bar">
+        <div class="status-left">
+            <span class="status-dot" id="globalDot"></span>
+            <span id="statusText">Awaiting initialization...</span>
+        </div>
+        <div class="status-right">
+            <span id="roundCounter">Round 0 / 10</span>
+        </div>
+    </footer>
+
+    <!-- Judge Modal -->
+    <div class="judge-overlay" id="judgeOverlay">
+        <div class="judge-card">
+            <div class="judge-header">
+                <div class="judge-icon">⚖️</div>
+                <h2>Machine Learning Judge Verdict</h2>
+                <p>SciKit-Learn Regression Model · Feature Analysis Complete</p>
+            </div>
+            <div class="judge-scores">
+                <div class="score-card advocate-score-card">
+                    <p>Agent A · Advocate</p>
+                    <div class="score-num" id="scoreA">0.0</div>
+                    <div class="score-bar"><div class="score-fill advocate-fill" id="barA"></div></div>
+                </div>
+                <div class="vs-badge">VS</div>
+                <div class="score-card challenger-score-card">
+                    <p>Agent B · Challenger</p>
+                    <div class="score-num" id="scoreB">0.0</div>
+                    <div class="score-bar"><div class="score-fill challenger-fill" id="barB"></div></div>
+                </div>
+            </div>
+            <div class="verdict-box" id="verdictBox"></div>
+            <div class="judge-metrics" id="judgeMetrics"></div>
+            <button class="btn-reset" onclick="location.reload()">Reset Simulation</button>
+        </div>
+    </div>
+
+    <script src="js/demo.js"></script>
+</body>
+</html>

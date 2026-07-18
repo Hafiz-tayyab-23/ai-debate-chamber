@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Debate Chamber | Enterprise Simulation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/demo.css">
+</head>
+<body>
+    <!-- Top Bar -->
+    <header class="top-bar">
+        <div class="top-bar-left">
+            <img src="logo.png" alt="Zenvyro Labs" class="logo-mark" />
+            <div>
+                <h1>Zenvyro Labs Enterprise Backend</h1>
+                <p>Autonomous Agent REST Gateway</p>
+            </div>
+            <a href="demo.html" style="font-size: 0.7rem; color: #64748b; font-weight: bold; margin-left: 10px; text-decoration: underline;">Switch to Mockup</a>
+        </div>
+        <div class="top-bar-right">
+            <input type="text" id="topicInput" placeholder="Enter custom debate topic..." style="padding: 10px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: #0a0e1a; color: white; width: 250px; outline:none;" />
+            <div class="clock-container">
+                <div class="clock-label">BACKEND STATUS</div>
+                <div class="clock" id="networkStatus" style="font-size: 1rem; color: #8b5cf6; border-color: rgba(139,92,246,0.3);">IDLE</div>
+            </div>
+            <button class="btn-start" id="startBtn">▶ Initialize Nodes</button>
+        </div>
+    </header>
+
+    <!-- Topic Banner -->
+    <div class="topic-banner" id="topicBanner">
+        <span class="topic-label">LIVE API TOPIC</span>
+        <h2 id="displayTopic">Awaiting System Initialization...</h2>
+    </div>
+
+    <!-- Arena -->
+    <main class="arena">
+        <!-- Agent A -->
+        <section class="agent-panel advocate-panel" id="panelA">
+            <div class="agent-badge advocate-badge">
+                <div class="agent-avatar">A</div>
+                <div>
+                    <h3>Agent A · The Advocate</h3>
+                    <p>Wired to Python API Route: generate_agent_a()</p>
+                </div>
+                <div class="live-dot" id="dotA"></div>
+            </div>
+            <div class="feed" id="feedA"></div>
+        </section>
+
+        <!-- Agent B -->
+        <section class="agent-panel challenger-panel" id="panelB">
+            <div class="agent-badge challenger-badge">
+                <div class="agent-avatar">B</div>
+                <div>
+                    <h3>Agent B · The Challenger</h3>
+                    <p>Wired to Python API Route: generate_agent_b()</p>
+                </div>
+                <div class="live-dot" id="dotB"></div>
+            </div>
+            <div class="feed" id="feedB"></div>
+        </section>
+    </main>
+
+    <!-- Status Bar -->
+    <footer class="status-bar">
+        <div class="status-left">
+            <span class="status-dot" id="globalDot"></span>
+            <span id="statusText">Awaiting Python REST Connection...</span>
+        </div>
+        <div class="status-right">
+            <button id="nextTurnBtn" style="background:#22c55e; color:white; border:none; padding:4px 16px; border-radius:4px; font-weight:bold; cursor:pointer;" disabled>Pass Turn ➔</button>
+            <button id="endDebateBtn" style="background:#8b5cf6; color:white; border:none; padding:4px 16px; border-radius:4px; font-weight:bold; cursor:pointer; margin-left:8px;" disabled>End Debate & Judge ⚖️</button>
+        </div>
+    </footer>
+
+    <!-- Judge Modal (Live: populated by mlJudge.py via /api/machine-learning/evaluate) -->
+    <div class="judge-overlay" id="judgeOverlay">
+        <div class="judge-card">
+            <div class="judge-header">
+                <div class="judge-icon">⚖️</div>
+                <h2>Machine Learning Judge Verdict</h2>
+                <p>SciKit-Learn Regression Model · Feature Analysis Complete</p>
+            </div>
+            <div class="judge-scores">
+                <div class="score-card advocate-score-card">
+                    <p>Agent A · Advocate</p>
+                    <div class="score-num" id="scoreA">0.0</div>
+                    <div class="score-bar"><div class="score-fill advocate-fill" id="barA"></div></div>
+                </div>
+                <div class="vs-badge">VS</div>
+                <div class="score-card challenger-score-card">
+                    <p>Agent B · Challenger</p>
+                    <div class="score-num" id="scoreB">0.0</div>
+                    <div class="score-bar"><div class="score-fill challenger-fill" id="barB"></div></div>
+                </div>
+            </div>
+            <div class="verdict-box" id="verdictBox"></div>
+            <div class="judge-metrics" id="judgeMetrics"></div>
+            <button class="btn-reset" onclick="location.reload()">Reset API Connection</button>
+        </div>
+    </div>
+
+    <!-- Production App Script (Connects to Python Backend) -->
+    <script src="js/app.js"></script>
+</body>
+</html>
