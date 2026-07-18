@@ -33,6 +33,7 @@ const globalDot = document.getElementById('globalDot');
 const countdownClock = document.getElementById('countdownClock');
 
 let countdownIntervalId = null;
+let currentTurnAbortController = null;
 
 const API_URL = "http://127.0.0.1:5000/api/debate";
 
@@ -174,6 +175,20 @@ function updateCountdownClock() {
         countdownClock.textContent = "0:00";
         clearInterval(countdownIntervalId);
         countdownIntervalId = null;
+
+        // The countdown itself is the source of truth for "time's up" --
+        // fire the judge THE INSTANT it hits zero, rather than waiting for
+        // whatever turn is currently mid-generation to finish on its own.
+        if (autoPlayActive) {
+            autoPlayActive = false;
+            if (currentTurnAbortController) {
+                currentTurnAbortController.abort();
+                currentTurnAbortController = null;
+            }
+            statusText.textContent = "Timer elapsed. Compiling ML Judge verdict...";
+            endDebateBtn.disabled = false;
+            runJudge();
+        }
     }
 }
 
@@ -186,27 +201,19 @@ function formatRemaining() {
     return `${m}:${s.toString().padStart(2, '0')} remaining`;
 }
 
-// Auto-play loop: keeps calling /next-turn back and forth until the
-// configured debate duration elapses, then automatically triggers the
-// ML Judge -- this is what makes the debate a genuine timed session
-// instead of relying on manual "Pass Turn" clicks.
+// Auto-play loop: keeps calling /next-turn back and forth. Ending the
+// debate on timeout is now handled by updateCountdownClock() the instant
+// the clock hits zero (including aborting whatever call is in flight) --
+// this loop just keeps requesting turns as long as autoPlayActive is true.
 async function runAutoPlay() {
     if (!autoPlayActive) return;
-
-    if (Date.now() >= debateEndTime) {
-        autoPlayActive = false;
-        statusText.textContent = "Timer elapsed. Compiling ML Judge verdict...";
-        endDebateBtn.disabled = false;
-        if (countdownIntervalId) { clearInterval(countdownIntervalId); countdownIntervalId = null; }
-        countdownClock.textContent = "0:00";
-        await runJudge();
-        return;
-    }
 
     const nextAgent = lastSpeaker === 'A' ? 'B' : 'A';
     setActive(nextAgent);
     statusText.textContent = `Awaiting API Response for Agent ${nextAgent}... (${formatRemaining()})`;
     toggleTyping(nextAgent, true);
+
+    currentTurnAbortController = new AbortController();
 
     try {
         const response = await fetch(`${API_URL}/next-turn`, {
@@ -216,7 +223,8 @@ async function runAutoPlay() {
                 topic: currentTopic,
                 last_speaker: lastSpeaker,
                 last_message: lastMessage
-            })
+            }),
+            signal: currentTurnAbortController.signal
         });
 
         const data = await response.json();
@@ -232,10 +240,17 @@ async function runAutoPlay() {
         dotA.classList.remove('active');
         dotB.classList.remove('active');
     } catch (err) {
-        console.error(err);
         toggleTyping(nextAgent, false);
+        if (err.name === 'AbortError') {
+            // Expected: the timer hit zero and we intentionally cut this
+            // turn short so the judge could run immediately. Nothing to log.
+            return;
+        }
+        console.error(err);
         statusText.textContent = "An agent failed to respond -- retrying next cycle...";
     }
+
+    if (!autoPlayActive) return; // timer may have elapsed while awaiting the response above
 
     // Small pacing delay so turns are readable on screen rather than
     // slamming back-to-back the instant a fast model responds. Kept short
@@ -354,5 +369,6 @@ async function runJudge() {
 endDebateBtn.addEventListener('click', () => {
     autoPlayActive = false; // manual early-stop overrides the timer
     if (countdownIntervalId) { clearInterval(countdownIntervalId); countdownIntervalId = null; }
+    if (currentTurnAbortController) { currentTurnAbortController.abort(); currentTurnAbortController = null; }
     runJudge();
 });
