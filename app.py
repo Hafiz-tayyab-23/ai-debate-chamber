@@ -84,6 +84,13 @@ def evaluate_debate():
         advocate_score = ml_judge.predict_score(advocate_text)
         challenger_score = ml_judge.predict_score(challenger_text)
 
+        advocate_features = ml_judge.extract_NLP_features(advocate_text)
+        challenger_features = ml_judge.extract_NLP_features(challenger_text)
+
+        analysis = ml_judge.generate_analysis(
+            advocate_features, challenger_features, advocate_score, challenger_score
+        )
+
         if advocate_score > challenger_score:
             winner = "A"
         elif challenger_score > advocate_score:
@@ -95,6 +102,9 @@ def evaluate_debate():
             "winner": winner,
             "advocate_score": advocate_score,
             "challenger_score": challenger_score,
+            "advocate_features": advocate_features,
+            "challenger_features": challenger_features,
+            "analysis": analysis,
             "metrics": ml_judge.last_metrics,
         })
     except Exception as e:

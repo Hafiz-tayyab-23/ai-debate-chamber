@@ -341,17 +341,16 @@ async function runJudge() {
 
         document.getElementById('verdictBox').innerHTML = `
             <strong>Winner: ${winnerName}</strong><br/><br/>
-            The SciKit-Learn RandomForestRegressor analyzed the full transcript from both agents
-            across ${currentRound} round(s) and computed a persuasiveness score for each side
-            based on word count, vocabulary complexity, sentiment, and rhetorical emphasis.
+            ${(evalData.analysis || []).map(line => `<div style="margin-bottom:8px;">• ${line}</div>`).join('')}
         `;
 
-        const metrics = evalData.metrics || {};
+        const fa = evalData.advocate_features || {};
+        const fb = evalData.challenger_features || {};
         document.getElementById('judgeMetrics').innerHTML = `
-            <div class="metric"><div class="label">Model Used</div><div class="val">RandomForestRegressor</div></div>
-            <div class="metric"><div class="label">Features Extracted</div><div class="val">Word Count · Complexity · Sentiment · Emphasis</div></div>
-            <div class="metric"><div class="label">Mean Squared Error</div><div class="val">${metrics.mse ?? 'N/A'}</div></div>
-            <div class="metric"><div class="label">R² Accuracy</div><div class="val">${metrics.r2_score ?? 'N/A'}</div></div>
+            <div class="metric"><div class="label">Word Count (A vs B)</div><div class="val">${fa.word_count ?? '-'} vs ${fb.word_count ?? '-'}</div></div>
+            <div class="metric"><div class="label">Vocabulary Richness</div><div class="val">${((fa.complexity_score ?? 0)*100).toFixed(0)}% vs ${((fb.complexity_score ?? 0)*100).toFixed(0)}%</div></div>
+            <div class="metric"><div class="label">Tone / Sentiment</div><div class="val">${fa.sentiment_score ?? 0} vs ${fb.sentiment_score ?? 0}</div></div>
+            <div class="metric"><div class="label">Rhetorical Emphasis</div><div class="val">${fa.exclamation_count ?? 0} vs ${fb.exclamation_count ?? 0}</div></div>
         `;
 
         document.getElementById('judgeOverlay').style.display = 'flex';

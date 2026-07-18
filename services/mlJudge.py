@@ -163,3 +163,74 @@ class DebateRegressionJudge:
         # extrapolations on live (unseen) text can nudge slightly outside it.
         bounded_score = max(1.0, min(10.0, raw_score))
         return round(bounded_score, 2)
+
+    # ----------------------------------------------------------------
+    # HUMAN-READABLE ANALYSIS
+    # ----------------------------------------------------------------
+    def generate_analysis(self, features_a, features_b, score_a, score_b):
+        """
+        Raw regression internals (MSE, R^2) are useful for US to sanity-check
+        the model during development, but they mean nothing to someone
+        watching the debate. This turns the same underlying features the
+        model actually used into a plain-English explanation of WHY one
+        side scored higher -- comparing word count, vocabulary richness,
+        tone, and rhetorical emphasis side by side.
+        """
+        insights = []
+
+        # Word count comparison
+        wc_diff = features_a["word_count"] - features_b["word_count"]
+        if abs(wc_diff) >= 5:
+            longer = "Agent A" if wc_diff > 0 else "Agent B"
+            insights.append(
+                f"{longer} built a substantially longer overall case "
+                f"({features_a['word_count']} vs {features_b['word_count']} words), "
+                "giving the model more material to work with."
+            )
+        else:
+            insights.append(
+                f"Both sides argued at a similar length "
+                f"({features_a['word_count']} vs {features_b['word_count']} words)."
+            )
+
+        # Vocabulary complexity comparison
+        cx_diff = features_a["complexity_score"] - features_b["complexity_score"]
+        if abs(cx_diff) >= 0.05:
+            richer = "Agent A" if cx_diff > 0 else "Agent B"
+            insights.append(
+                f"{richer} used richer, less repetitive vocabulary "
+                f"({features_a['complexity_score']*100:.0f}% vs {features_b['complexity_score']*100:.0f}% unique words), "
+                "a signal the model associates with more sophisticated argumentation."
+            )
+
+        # Sentiment / tone comparison
+        sent_diff = features_a["sentiment_score"] - features_b["sentiment_score"]
+        if abs(sent_diff) >= 0.1:
+            more_positive = "Agent A" if sent_diff > 0 else "Agent B"
+            insights.append(
+                f"{more_positive} framed its argument more confidently and positively, "
+                "which the historical training data links to slightly higher persuasiveness."
+            )
+        else:
+            insights.append("Both sides struck a similarly confident tone.")
+
+        # Rhetorical emphasis
+        if features_a["exclamation_count"] != features_b["exclamation_count"]:
+            emphatic = "Agent A" if features_a["exclamation_count"] > features_b["exclamation_count"] else "Agent B"
+            insights.append(f"{emphatic} leaned more on emphatic, exclamatory delivery.")
+
+        # Final verdict line
+        score_gap = round(abs(score_a - score_b), 2)
+        if score_gap < 0.3:
+            insights.append(
+                f"The final scores came out nearly tied ({score_a} vs {score_b}) -- "
+                "this was a close, evenly matched debate."
+            )
+        else:
+            winner = "Agent A (The Advocate)" if score_a > score_b else "Agent B (The Challenger)"
+            insights.append(
+                f"Overall, {winner} came out ahead ({max(score_a, score_b)} vs {min(score_a, score_b)}) "
+                "based on this combination of factors."
+            )
+
+        return insights
